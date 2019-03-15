@@ -3,23 +3,27 @@ import weka.classifiers.Evaluation;
 import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.CSVLoader;
 
-import java.io.File;
-import java.util.Random;
+import java.io.*;
 
 public class Main {
 
-    public static void main(String [] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         CSVLoader loader = new CSVLoader();
         loader.setSource(new File("test.csv"));
         Instances testSet = loader.getDataSet();
         loader.setSource(new File("train.csv"));
         Instances trainSet = loader.getDataSet();
-        if (trainSet.classIndex() == -1)  {
+        if (trainSet.classIndex() == -1) {
             trainSet.setClassIndex(trainSet.numAttributes() - 1);
         }
+        if (testSet.classIndex() == -1) {
+            testSet.setClassIndex(testSet.numAttributes() - 1);
+        }
+        predict(testSet, trainSet);
         RandomForest rfTree = new RandomForest();
         Evaluation eval = new Evaluation(trainSet);
       /*  Evaluation eval = new Evaluation(trainSet);
@@ -75,7 +79,7 @@ public class Main {
                 }
             }
         }*/
-        CfsSubsetEval eval2 = new CfsSubsetEval();
+      /*  CfsSubsetEval eval2 = new CfsSubsetEval();
         GreedyStepwise search = new GreedyStepwise();
         search.setSearchBackwards(true);
         AttributeSelection attributeSelection = new AttributeSelection();
@@ -92,23 +96,38 @@ public class Main {
         attributeSelection.SelectAttributes(trainSet);
         Instances trainSet3 = attributeSelection.reduceDimensionality(trainSet);
 
-        eval.crossValidateModel(rfTree, trainSet, 10 ,new Random(1));
+        eval.crossValidateModel(rfTree, trainSet, 10, new Random(1));
         printQuality(eval);
-        eval.crossValidateModel(rfTree, trainSet2, 10 ,new Random(1));
+        eval.crossValidateModel(rfTree, trainSet2, 10, new Random(1));
         printQuality(eval);
-        eval.crossValidateModel(rfTree, trainSet3, 10 ,new Random(1));
+        eval.crossValidateModel(rfTree, trainSet3, 10, new Random(1));
         printQuality(eval);
 
-        eval.crossValidateModel(perceptron, trainSet, 10 ,new Random(1));
+        eval.crossValidateModel(perceptron, trainSet, 10, new Random(1));
         printQuality(eval);
-        eval.crossValidateModel(perceptron, trainSet2, 10 ,new Random(1));
+        eval.crossValidateModel(perceptron, trainSet2, 10, new Random(1));
         printQuality(eval);
-        eval.crossValidateModel(perceptron, trainSet3, 10 ,new Random(1));
-        printQuality(eval);
+        eval.crossValidateModel(perceptron, trainSet3, 10, new Random(1));
+        printQuality(eval); */
     }
 
     private static void printQuality(Evaluation eval) {
-        double qualityMeasure = eval.correct()/ (eval.correct() + eval.incorrect());
+        double qualityMeasure = eval.correct() / (eval.correct() + eval.incorrect());
         System.out.println(qualityMeasure);
+    }
+
+    private static void predict(Instances testSet, Instances trainSet) throws Exception {
+        PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(new File("prediction.csv"))));
+        RandomForest randomForest = new RandomForest();
+        pw.println("id,class");
+        randomForest.setNumTrees(100);
+        randomForest.buildClassifier(trainSet);
+        for (int i = 0; i < testSet.numInstances() ; i++) {
+            int index = (int) randomForest.classifyInstance(testSet.instance(i));
+            String currentClass = trainSet.classAttribute().value(index);
+            int id = i * 2 + 1;
+            pw.println(id + "," + currentClass);
+        }
+        pw.close();
     }
 }
